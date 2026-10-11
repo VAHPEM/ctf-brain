@@ -212,9 +212,9 @@ output, and never interpret.
 
 `recall` is the agent's **memory of how this *kind* of challenge is usually cracked** — a
 corpus of short "situation → technique" notes distilled from many reverse-engineers' CTF
-writeups (not challenge-specific solutions). It ships with ~155 notes under
+writeups (not challenge-specific solutions). It ships with ~177 notes under
 `variant2_brain_muscle/knowledge/notes/`, tagged by situation (e.g. `qt-gui`,
-`debug-disassembly`, `malware-c2`, `pcap-network`, `vm-obfuscation`, `firmware-uefi`). When
+`debug-disassembly`, `malware-c2`, `pcap-network`, `vm-obfuscation`, `firmware-uefi`). Most are distilled from FLARE-On RE work (`source: distilled/flareon`); a CSS-CTF-2026 set (`source: distilled/cssctf`, notes 161–179) widens the corpus beyond pure RE to web (GraphQL/SSRF), crypto (GF(p)/keystream), pwn, forensics (debugfs/timestomp), signal (SSTV/AFSK, chirp matched-filter), blockchain, OSINT and no-oracle packed-checksum puzzles. When
 the Brain is stuck or a target feels familiar, it queries `recall("qt crackme per-keystroke
 accumulator")` and gets back the few most relevant notes — it still decides and acts itself.
 

@@ -14,6 +14,8 @@ See the [repo root README](../README.md) for full setup (dependencies, VM toolin
 models, `.env`, and configuring flag detection per CTF) and the complete tool catalog
 (29 Muscle tools).
 
+The `recall` corpus is ~177 distilled technique notes (FLARE-On RE plus a CSS-CTF-2026 set, `source: distilled/cssctf`, notes 161–179 covering web/crypto/pwn/forensics/signal/blockchain/OSINT) under `knowledge/notes/` — see [root README → recall](../README.md#the-recall-knowledge-base).
+
 Run (from this folder):
     python3 -m agent.run <path-to-file>          # e.g. ../challenges/ch4/ToxicMiner.exe
     MAX_STEPS=40 python3 -m agent.run <path>      # raise the per-run step budget
