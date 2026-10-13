@@ -14,6 +14,7 @@ It has been tested and used in practice on:
 
 - **FLARE-On 12** — solved challenges **1–8**
 - **FLARE-On 13** — solved challenges **1–9**
+- **CSS CTF 2026: Return to Nexus** (University of Sydney Cyber Security Society) — used to solve **all** of the challenges
 
 > Research / education project. Operate it only on files you own or on published,
 > authorized CTF puzzles, inside a private, network-isolated lab. Challenge binaries are
@@ -212,7 +213,7 @@ output, and never interpret.
 
 `recall` is the agent's **memory of how this *kind* of challenge is usually cracked** — a
 corpus of short "situation → technique" notes distilled from many reverse-engineers' CTF
-writeups (not challenge-specific solutions). It ships with ~177 notes under
+writeups (not challenge-specific solutions). It ships with 178 notes under
 `variant2_brain_muscle/knowledge/notes/`, tagged by situation (e.g. `qt-gui`,
 `debug-disassembly`, `malware-c2`, `pcap-network`, `vm-obfuscation`, `firmware-uefi`). Most are distilled from FLARE-On RE work (`source: distilled/flareon`); a CSS-CTF-2026 set (`source: distilled/cssctf`, notes 161–179) widens the corpus beyond pure RE to web (GraphQL/SSRF), crypto (GF(p)/keystream), pwn, forensics (debugfs/timestomp), signal (SSTV/AFSK, chirp matched-filter), blockchain, OSINT and no-oracle packed-checksum puzzles. When
 the Brain is stuck or a target feels familiar, it queries `recall("qt crackme per-keystroke

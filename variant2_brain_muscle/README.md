@@ -7,14 +7,15 @@ Canonical think → act → observe loop over a compressed Ledger
 (KNOWN / ASSUMED / RULED-OUT), with $0 code guards (budget, stall=2, stop-don't-guess).
 
 **Status:** the active, proven design — tested and used in practice on
-**FLARE-On 12 (challenges 1–8)** and **FLARE-On 13 (challenges 1–9)**. It costs more API
-tokens than variant 1 but needs little local compute.
+**FLARE-On 12 (challenges 1–8)**, **FLARE-On 13 (challenges 1–9)** and **CSS CTF 2026:
+Return to Nexus** (University of Sydney Cyber Security Society — used to solve **all** of
+the challenges). It costs more API tokens than variant 1 but needs little local compute.
 
 See the [repo root README](../README.md) for full setup (dependencies, VM tooling, AI
 models, `.env`, and configuring flag detection per CTF) and the complete tool catalog
 (29 Muscle tools).
 
-The `recall` corpus is ~177 distilled technique notes (FLARE-On RE plus a CSS-CTF-2026 set, `source: distilled/cssctf`, notes 161–179 covering web/crypto/pwn/forensics/signal/blockchain/OSINT) under `knowledge/notes/` — see [root README → recall](../README.md#the-recall-knowledge-base).
+The `recall` corpus is 178 distilled technique notes (FLARE-On RE plus a CSS-CTF-2026 set, `source: distilled/cssctf`, notes 161–179 covering web/crypto/pwn/forensics/signal/blockchain/OSINT) under `knowledge/notes/` — see [root README → recall](../README.md#the-recall-knowledge-base).
 
 Run (from this folder):
     python3 -m agent.run <path-to-file>          # e.g. ../challenges/ch4/ToxicMiner.exe
