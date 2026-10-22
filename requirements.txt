@@ -8,3 +8,5 @@ anthropic        # P3: Brain via Claude API
 openai           # P3: Brain via OpenAI API
 pillow
 pymupdf
+
+dual-vm-ai-agent @ git+https://github.com/VAHPEM/dual-vm-ai-agent.git@main   # Muscle: dieu khien 2 VM (variant2 import dualvm)

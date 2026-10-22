@@ -63,6 +63,21 @@ Details and measured numbers: [root README → Cost & speed](../README.md#cost--
 backticks. Measured reason: ch4 run 2 escalated to Opus on three honest "no match"
 greps, then wasted 4 steps "fixing" a quoting bug that was only the 55-char display cut.
 
+## Where the VM tools live
+
+The 16 VM-control tools (`run_cmd`, `run_script`, `read_file`, `win_windows`,
+`win_screenshot`, `win_gui_run`, `win_frida`, `win_ui_tree`/`win_ui_click`/
+`win_ui_type`/`win_key`/`win_ui_seq`, `linux_gui_run`, `linux_gdb`, `job_start`,
+`job_poll`) are registered here as usual but delegate to the **`dualvm`** package
+(the Muscle). Their `@tool` name/description/args are unchanged, so `catalog()` is
+byte-identical. The remaining tools (`triage`, `peek`, `author_and_run`,
+`check_flag`, `extract`, `extract_images`, `pe_overview`, `decompile`, `view_image`,
+`pdf_pages`, `ghidra_script`, `recall`, `r2`) stay here — they are CTF-specific.
+
+Adding a VM capability now means adding it in `dualvm` **and** exposing a thin adapter
+tool here; update both READMEs per the project rule.
+
+
 ## Rule for contributors
 
 Every new function, rule, env knob or dependency is documented in this README **and** the

@@ -24,3 +24,6 @@ samples/
 _run_state.json
 _metrics.json
 Claude outputs/
+
+# split workspace (dual-vm-ai-agent build, temporary)
+_split/

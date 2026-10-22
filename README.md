@@ -209,6 +209,34 @@ output, and never interpret.
 
 ---
 
+## Split: Brain (ctf-brain) + Muscle (dual-vm-ai-agent)
+
+The VM-control layer now lives in its own package, **`dual-vm-ai-agent`** (import
+name `dualvm`). The two repos map onto the variant2 design:
+
+- **`ctf-brain` = the Brain.** The orchestrator and reasoner — it decides everything,
+  calls the model API, and owns everything CTF-specific (flag detection, the
+  Workspace, Ghidra/r2 analysis, the recall knowledge base).
+- **`dual-vm-ai-agent` = the Muscle.** Deterministic, `$0`, no model calls: it runs
+  commands on the Kali + Windows VMs and returns raw output. It has no concept of a
+  flag or a challenge.
+
+The 16 VM tools (`run_cmd`, `run_script`, `read_file`, `win_*`, `linux_*`,
+`job_*`) keep their exact `@tool` names, descriptions and argument schemas here — so
+the catalog the Brain sees is byte-identical and the prompt cache is unaffected — but
+their bodies are now thin adapters that call `dualvm` and convert the returned
+`VMResult` back into a `ToolResult`.
+
+**Dependency:** `requirements.txt` includes `dual-vm-ai-agent` (install editable for
+development: `pip install -e ../dual-vm-ai-agent`). `agent/remote.py` is a shim that
+points `DUALVM_ENV`/`DUALVM_SSH_KEY` at this repo's `.env` and `.ssh_keys/`, then
+re-exports `dualvm.remote` (one SSH implementation, shared).
+
+**Flag detection** is injected into the Muscle once at startup
+(`agent/tools.py` calls `dualvm.set_matcher(_find_flag)`) — `FLAG_RES` still lives
+here, in the Brain.
+
+
 ## The recall knowledge base
 
 `recall` is the agent's **memory of how this *kind* of challenge is usually cracked** — a
