@@ -1,20 +1,30 @@
-# ctf-brain — CTF Reverse-Engineering Agent
+# dual-vm-ai-agent — an AI that operates a two-VM lab
 
-> Repository: [`ctf-reverse-engineering-agent`](https://github.com/<your-username>/ctf-reverse-engineering-agent)
-> · project name: **ctf-brain**
+> Repository: [`dual-vm-ai-agent`](https://github.com/VAHPEM/dual-vm-ai-agent)
+> (formerly `ctf-reverse-engineering-agent`) · project name: **ctf-brain**
 
-**An autonomous agent that solves CTF reverse-engineering challenges.** It is built and
-tuned specifically for RE puzzles (unpacking, decompiling, debugging, emulating, defeating
-obfuscation) of the kind found in [FLARE-On](https://flare-on.com/). A single strong LLM
-(the **Brain**) makes every decision and writes every script; a set of deterministic,
-zero-cost tools (the **Muscle**) execute those decisions on real analysis VMs and return
-raw output — they never interpret or conclude.
+**An LLM agent that works *inside* two real virtual machines — a Kali Linux VM and a
+Windows VM — the way a human analyst would.** Over SSH it runs shell commands and whole
+scripts, moves files between the machines, launches GUI programs and actually *sees* them
+(screenshots fed back to the model), clicks and types through Windows UI Automation,
+attaches debuggers (Frida on Windows, gdb on Linux), and starts long jobs that it polls
+later. A single strong LLM (the **Brain**) decides every action and writes every script; a
+set of deterministic, zero-cost tools (the **Muscle**) carry those actions out on the VMs
+and return raw output — they never interpret or conclude.
 
-It has been tested and used in practice on:
+The workload this has been built, tuned and proven on is **CTF reverse engineering**
+(unpacking, decompiling, debugging, emulating, defeating obfuscation — the kind of puzzle
+found in [FLARE-On](https://flare-on.com/)). It has been tested and used in practice on:
 
 - **FLARE-On 12** — solved challenges **1–8**
 - **FLARE-On 13** — solved challenges **1–9**
 - **CSS CTF 2026: Return to Nexus** (University of Sydney Cyber Security Society) — used to solve **all** of the challenges
+
+> **Current scope, stated honestly.** The VM-control layer (`agent/remote.py` and the
+> Muscle tools) is general-purpose — nothing in it is CTF-specific. The *loop* that drives
+> it is not yet: today the only entry point takes **files** as input, and a run ends when a
+> **flag** is found (or the step budget / stall guard stops it). A generic task mode and a
+> way for other AI clients to use the two VMs directly are on the [roadmap](#roadmap).
 
 > Research / education project. Operate it only on files you own or on published,
 > authorized CTF puzzles, inside a private, network-isolated lab. Challenge binaries are
@@ -24,15 +34,18 @@ It has been tested and used in practice on:
 
 ## Table of contents
 
-1. [The two variants](#the-two-variants)
-2. [How it works](#how-it-works)
+1. [What the AI can do on the two VMs](#what-the-ai-can-do-on-the-two-vms)
+   - [How the AI reaches the VMs](#how-the-ai-reaches-the-vms)
+   - [Safety model](#safety-model)
+2. [The two variants](#the-two-variants)
+3. [How it works](#how-it-works)
    - [variant2 — Brain + Muscle](#variant2--brain--muscle-active)
    - [Brain tiers — escalation & de-escalation](#brain-tiers--escalation--de-escalation)
    - [variant1 — multi-node pipeline](#variant1--multi-node-pipeline-legacy)
-3. [The Muscle toolset](#the-muscle-toolset)
-4. [The recall knowledge base](#the-recall-knowledge-base)
-5. [Repository layout](#repository-layout)
-6. [Getting started from zero](#getting-started-from-zero)
+4. [The Muscle toolset](#the-muscle-toolset)
+5. [The recall knowledge base](#the-recall-knowledge-base)
+6. [Repository layout](#repository-layout)
+7. [Getting started from zero](#getting-started-from-zero)
    - [Prerequisites](#1-prerequisites)
    - [Clone the repo](#2-clone-the-repo)
    - [Python dependencies](#3-python-dependencies)
@@ -40,10 +53,81 @@ It has been tested and used in practice on:
    - [AI models](#5-ai-models)
    - [The `.env` file (API keys & VM addresses)](#6-the-env-file-api-keys--vm-addresses)
    - [Flag detection per CTF](#7-flag-detection-per-ctf)
-7. [Running it](#running-it)
-8. [Cost & speed: measurement and prompt caching](#cost--speed-measurement-and-prompt-caching)
-9. [Design principles](#design-principles)
-10. [License & scope](#license--scope)
+8. [Running it](#running-it)
+9. [Cost & speed: measurement and prompt caching](#cost--speed-measurement-and-prompt-caching)
+10. [Design principles](#design-principles)
+11. [Roadmap](#roadmap)
+12. [License & scope](#license--scope)
+
+---
+
+## What the AI can do on the two VMs
+
+Every capability below is a Muscle tool the Brain calls by name with arguments it chooses.
+The tool runs on the VM and returns raw output (text, exit code, new files, or an image the
+model can look at).
+
+| Capability | Kali Linux VM | Windows VM |
+|---|---|---|
+| **Run a shell command** (real timeout, exit code, new-file detection) | `run_cmd` | `run_cmd host=windows` (cmd.exe, tree-killing timeout) |
+| **Run a whole script the AI wrote** | `run_script`, `author_and_run` (Python / bash) | `run_script host=windows`, `author_and_run host=windows` |
+| **Read files / bytes** | `read_file`, `peek` | `read_file host=windows` — if the file is not on the host asked for, the other VM is tried |
+| **Unpack / extract** | `extract`, `extract_images` (archives, WIM, PE resources) | `extract` (7-Zip on Windows for WIM) |
+| **See the screen** | `linux_gui_run` — program under Xvfb + screenshot | `win_screenshot` (the real desktop), `win_windows` (window list) |
+| **Run a GUI program and watch it** | `linux_gui_run` | `win_gui_run` — exit code, or window titles + screenshot if still up |
+| **Drive a GUI** (list controls, click, type, keys, sequences) | — | `win_ui_tree`, `win_ui_click`, `win_ui_type`, `win_key`, `win_ui_seq` (UI Automation) |
+| **Debug a live process** | `linux_gdb` — gdb-python script, ASLR off, under Xvfb | `win_frida` — Frida JS inside the process (hook, read/patch memory) |
+| **Static binary analysis** | `pe_overview`, `decompile`, `ghidra_script` (headless Ghidra), `r2` (radare2), `triage` | — (the binary is analysed on Kali) |
+| **Long-running work** | `job_start` / `job_poll` | `job_start host=windows` / `job_poll` |
+| **Look at an image / PDF** | `view_image`, `pdf_pages` (rendered, then shown to the model) | (screenshots come back the same way) |
+
+A typical run therefore crosses both machines: decompile on Kali, run the sample on
+Windows, screenshot its window, click through its UI, hook the check routine with Frida,
+pull a dumped buffer back, and finish the math in a Python script on Kali.
+
+### How the AI reaches the VMs
+
+All of it lives in `variant2_brain_muscle/agent/remote.py` (≈430 lines, `paramiko` only):
+
+- **One pooled SSH connection per VM, key auth only.** The private key lives in the
+  git-ignored `.ssh_keys/`; a dropped connection is detected and re-opened, and a command
+  whose channel never opened is retried once.
+- **Output is never lost on a timeout.** `ssh_exec()` drains the channel as bytes arrive,
+  so a command that printed its answer and then hung still returns what it printed, marked
+  as real output that arrived before the timeout.
+- **Real timeouts on both OSes.** Kali commands run under `timeout -k` in their own process
+  group (a forking solver leaves no orphans); Windows commands go through a small launcher
+  (`win_run_bounded()`) that kills the whole process tree and reports exit code `124`.
+- **File transfer over SFTP** (`upload`, `write_remote`, `read_bytes`) into a per-VM
+  `samples/` working directory. Long output is spilled to a file on the VM and paged back
+  instead of flooding the model's context.
+- **Reaching the Windows desktop.** An SSH login on Windows lands in *session 0*, which has
+  no interactive desktop: screenshots fail ("The handle is invalid") and a GUI program
+  paints a window nobody can see (a modal dialog then blocks it until the timeout).
+  `run_in_session1()` crosses over with a one-shot interactive scheduled task that runs as
+  the logged-on user in *session 1* — the real desktop — and collects its output.
+  `win_windows`, `win_screenshot`, `win_gui_run`, the `win_ui_*` tools and `win_frida` all
+  use it.
+
+### Safety model
+
+Letting a model type into real machines needs guardrails that do not depend on the model
+behaving:
+
+- **Isolated lab.** The VMs are meant to be disposable analysis machines (snapshot them)
+  on a private, host-only network. The agent only ever opens SSH to the two addresses in
+  `.env`.
+- **Command filter in code.** `tools._security_block()` checks every command and every
+  script body *before* it reaches a VM and refuses changes to security/system
+  configuration: Windows Defender and firewall settings, service control, registry
+  writes, ACL/boot config, disk formatting/encryption; Linux firewall rules, disabling
+  security services, account management, interactive root shells, `rm -rf /`. Installing
+  tools and libraries on the analysis VM is allowed — that is ordinary analysis work.
+- **Bounded everything.** Per-call timeouts, a per-run step budget (`MAX_STEPS`), an
+  optional token budget (`MAX_RUN_TOKENS`), and a stall detector that **stops the run**
+  rather than letting the model keep guessing.
+- **No secrets in the repo.** `.env` (API keys, VM addresses) and `.ssh_keys/` are
+  git-ignored and never printed.
 
 ---
 
@@ -315,7 +399,7 @@ This section assumes you have never seen the repo before.
 ### 2. Clone the repo
 
 ```bash
-git clone https://github.com/<your-username>/ctf-reverse-engineering-agent.git ctf-brain
+git clone https://github.com/VAHPEM/dual-vm-ai-agent.git ctf-brain
 cd ctf-brain
 ```
 
@@ -640,8 +724,25 @@ per-step state, ~2.5 for the system prompt + tool catalog (not the 3–4 of pros
 
 ---
 
+## Roadmap
+
+Ordered, one step at a time, each measured on the CTF baseline before the next so the
+proven workload does not regress:
+
+1. **Generic task mode** — `python3 -m agent.run --task "<instruction>" [files…]`: the run
+   ends when the Brain reports the task done *with evidence from a tool*, instead of when a
+   flag regex matches. Touches `run.py`, the stop condition in `orchestrator.py` and a
+   prompt branch; CTF mode stays the default.
+2. **The two VMs as an MCP server** — expose the Muscle tools over the Model Context
+   Protocol so any MCP client (Claude Desktop, Claude Code, …) can drive the Kali and
+   Windows VMs directly, with the same command filter and timeouts, without going through
+   the Brain loop.
+
+---
+
 ## License & scope
 
-For security research and education. Use it only against binaries you are authorized to
-analyze (your own, or published CTF challenges intended to be solved). Challenge binaries
-are **not** included in this repository.
+For security research and education. The agent executes model-written commands on real
+machines: run it only on disposable VMs in a private, network-isolated lab, and only
+against files you are authorized to analyze (your own, or published CTF challenges
+intended to be solved). Challenge binaries are **not** included in this repository.

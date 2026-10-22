@@ -6,6 +6,14 @@ executor: it runs tools/VMs and returns raw, structured slices — it never conc
 Canonical think → act → observe loop over a compressed Ledger
 (KNOWN / ASSUMED / RULED-OUT), with $0 code guards (budget, stall=2, stop-don't-guess).
 
+**This is the variant that operates the two VMs.** `agent/remote.py` holds one pooled SSH
+connection per VM (Kali + Windows), SFTP transfer, real timeouts on both OSes, and
+`run_in_session1()` to reach the Windows interactive desktop; the Muscle tools in
+`agent/tools.py` give the Brain shell, files, screenshots, GUI automation, Frida/gdb and
+background jobs on either machine, behind the `_security_block()` command filter. Full
+capability table and safety model:
+[root README → What the AI can do on the two VMs](../README.md#what-the-ai-can-do-on-the-two-vms).
+
 **Status:** the active, proven design — tested and used in practice on
 **FLARE-On 12 (challenges 1–8)**, **FLARE-On 13 (challenges 1–9)** and **CSS CTF 2026:
 Return to Nexus** (University of Sydney Cyber Security Society — used to solve **all** of
