@@ -12,7 +12,7 @@ description: >-
 The full methodology is the **single source** in the `dual-vm-ai-agent` package
 this repo depends on:
 
-- Skill: `dual-vm-ai-agent/.claude/skills/ctf-analysis/SKILL.md`
+- Skill: `dual-vm-ai-agent/.claude/skills/binary-analysis/SKILL.md`
 - Source: `dual-vm-ai-agent/dualvm/playbook.py`
   (`ANALYSIS_DISCIPLINE` + `METHOD_PLAYBOOK`)
 
